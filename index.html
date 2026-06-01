@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>¡Aventura Científica!</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Nunito',sans-serif;background:#1a1a2e;overflow:hidden;width:100vw;height:100vh;touch-action:none;}
+
+/* ===== SCREENS ===== */
+.screen{display:none;width:100vw;height:100vh;position:absolute;top:0;left:0;}
+.screen.active{display:flex;}
+
+/* ===== AVATAR SELECT ===== */
+#s-avatar{
+  background:linear-gradient(160deg,#B5EAD7,#FFDAC1,#C7CEEA);
+  flex-direction:column;align-items:center;justify-content:center;
+  gap:1.2rem;padding:1.5rem;overflow-y:auto;
+}
+#s-avatar h1{font-family:'Fredoka One',cursive;font-size:clamp(1.8rem,5vw,3rem);color:#fff;text-shadow:0 4px 0 rgba(0,0,0,.15);text-align:center;}
+#s-avatar p{font-size:1.1rem;color:#fff;font-weight:800;text-align:center;}
+.av-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;max-width:420px;width:100%;}
+.av-card{background:#fff;border-radius:20px;padding:1rem .6rem;text-align:center;cursor:pointer;border:4px solid transparent;box-shadow:0 8px 20px rgba(0,0,0,.12);transition:transform .2s;}
+.av-card:hover,.av-card:active{transform:scale(1.08);}
+.av-card.sel{border-color:#FF6B6B;background:#FFF0F0;}
+.av-card .em{font-size:2.4rem;}
+.av-card .nm{font-size:.8rem;font-weight:800;color:#2C3E50;margin-top:4px;}
+.name-row{display:flex;flex-direction:column;align-items:center;gap:.8rem;width:100%;max-width:320px;}
+.name-row input{width:100%;padding:.85rem 1.2rem;border-radius:50px;border:3px solid #ddd;font-size:1.1rem;font-family:'Nunito',sans-serif;font-weight:700;text-align:center;outline:none;transition:border-color .2s;}
+.name-row input:focus{border-color:#FF6B6B;}
+.btn{background:#FF6B6B;color:#fff;border:none;border-radius:50px;padding:.9rem 2.2rem;font-size:1.15rem;font-family:'Fredoka One',cursive;cursor:pointer;box-shadow:0 6px 0 #CC3333;transition:transform .1s,box-shadow .1s;white-space:nowrap;}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #CC3333;}
+.btn.g{background:#5DBB63;box-shadow:0 6px 0 #3D8B42;}
+.btn.b{background:#4ECDC4;box-shadow:0 6px 0 #2E9B93;}
+.btn.y{background:#FFD700;color:#7A5800;box-shadow:0 6px 0 #B89800;}
+
+/* ===== WORLD SELECT ===== */
+#s-worlds{
+  background:linear-gradient(180deg,#87CEEB 0%,#B5EAD7 60%,#5DBB63 100%);
+  flex-direction:column;align-items:center;padding:1rem;overflow-y:auto;
+}
+.topbar{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.88);border-radius:20px;padding:.6rem 1rem;width:100%;max-width:600px;margin-bottom:1rem;box-shadow:0 4px 16px rgba(0,0,0,.1);}
+.topbar .av{font-size:2rem;}
+.topbar .pname{font-size:1rem;font-weight:800;}
+.xpwrap{flex:1;margin:0 .8rem;}
+.xplbl{font-size:.7rem;font-weight:700;color:#7F8C8D;margin-bottom:2px;}
+.xpbar{height:12px;background:#e0e0e0;border-radius:99px;overflow:hidden;}
+.xpfill{height:100%;background:linear-gradient(90deg,#FFD700,#FF9500);border-radius:99px;transition:width .6s;}
+.lvl{background:#FFD700;color:#7A5800;font-family:'Fredoka One',cursive;font-size:1rem;padding:4px 12px;border-radius:50px;box-shadow:0 3px 0 #B89800;white-space:nowrap;}
+.wtitle{font-family:'Fredoka One',cursive;font-size:1.8rem;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.2);margin-bottom:1rem;text-align:center;}
+.wgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;max-width:600px;width:100%;}
+.wcard{border-radius:20px;padding:1.2rem .8rem;text-align:center;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,.15);transition:transform .2s;border:4px solid rgba(255,255,255,.5);position:relative;}
+.wcard:hover{transform:scale(1.06) rotate(-1deg);}
+.wcard.locked{opacity:.5;cursor:not-allowed;filter:grayscale(.4);}
+.wcard .we{font-size:3rem;margin-bottom:6px;}
+.wcard .wn{font-family:'Fredoka One',cursive;font-size:1rem;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.2);}
+.wcard .ws{font-size:1rem;margin-top:4px;letter-spacing:2px;}
+.wcard .wlock{position:absolute;top:6px;right:8px;font-size:1.5rem;}
+.wsky{background:linear-gradient(135deg,#89CFF0,#4e8bcc);}
+.wvolc{background:linear-gradient(135deg,#FF9966,#cc4400);}
+.wocean{background:linear-gradient(135deg,#1CB5E0,#007EFF);}
+.wjungle{background:linear-gradient(135deg,#56ab2f,#1e7c21);}
+.wspace{background:linear-gradient(135deg,#2C3E50,#6c3483);}
+
+/* ===== GAME WORLD (walking) ===== */
+#s-game{
+  flex-direction:column;position:relative;overflow:hidden;
+}
+#game-canvas{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+}
+.game-hud{
+  position:absolute;top:.6rem;left:.6rem;right:.6rem;
+  display:flex;align-items:center;gap:8px;
+  background:rgba(0,0,0,.45);border-radius:16px;
+  padding:.5rem .8rem;z-index:10;
+  backdrop-filter:blur(4px);
+}
+.hud-av{font-size:1.6rem;}
+.hud-name{font-size:.85rem;font-weight:800;color:#fff;}
+.hud-xp{flex:1;margin:0 .5rem;}
+.hud-xpbar{height:8px;background:rgba(255,255,255,.2);border-radius:99px;overflow:hidden;}
+.hud-xpfill{height:100%;background:linear-gradient(90deg,#FFD700,#FF9500);border-radius:99px;transition:width .4s;}
+.hud-lvl{font-family:'Fredoka One',cursive;font-size:.9rem;color:#FFD700;}
+.back-map{background:rgba(255,255,255,.2);border:none;border-radius:50px;color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:.8rem;padding:5px 12px;cursor:pointer;}
+
+/* D-PAD */
+.dpad{
+  position:absolute;bottom:1.2rem;left:1.2rem;
+  display:grid;grid-template-columns:44px 44px 44px;grid-template-rows:44px 44px 44px;
+  gap:4px;z-index:10;
+}
+.dp{
+  background:rgba(255,255,255,.75);border:none;border-radius:12px;
+  font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 0 rgba(0,0,0,.2);transition:transform .1s;
+  user-select:none;
+}
+.dp:active{transform:scale(.92);}
+.dp-up{grid-column:2;grid-row:1;}
+.dp-left{grid-column:1;grid-row:2;}
+.dp-mid{grid-column:2;grid-row:2;background:rgba(255,255,255,.4);font-size:.7rem;color:#fff;font-weight:800;}
+.dp-right{grid-column:3;grid-row:2;}
+.dp-down{grid-column:2;grid-row:3;}
+
+/* INTERACT BUTTON */
+.interact-btn{
+  position:absolute;bottom:1.2rem;right:1.2rem;
+  width:70px;height:70px;border-radius:50%;
+  background:#FF6B6B;border:none;color:#fff;
+  font-size:1.5rem;font-family:'Fredoka One',cursive;
+  cursor:pointer;box-shadow:0 6px 0 #CC3333;
+  display:flex;align-items:center;justify-content:center;
+  z-index:10;transition:transform .1s;
+}
+.interact-btn:active{transform:scale(.93);}
+
+/* NEARBY HINT */
+.nearby-hint{
+  position:absolute;bottom:5.5rem;right:1.2rem;
+  background:rgba(0,0,0,.7);color:#FFD700;
+  font-weight:800;font-size:.85rem;border-radius:12px;
+  padding:6px 12px;z-index:10;display:none;
+  animation:bounce .6s infinite alternate;
+}
+@keyframes bounce{from{transform:translateY(0);}to{transform:translateY(-4px);}}
+
+/* ===== QUESTION MODAL ===== */
+.qmodal{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);
+  display:none;align-items:center;justify-content:center;
+  z-index:50;padding:1rem;
+}
+.qmodal.open{display:flex;}
+.qbox{
+  background:#fff;border-radius:28px;padding:1.6rem 1.4rem;
+  max-width:420px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.3);
+  animation:popIn .3s ease;
+}
+@keyframes popIn{0%{transform:scale(.6);opacity:0;}70%{transform:scale(1.04);}100%{transform:scale(1);opacity:1;}}
+.qscene{font-size:3rem;text-align:center;margin-bottom:.6rem;}
+.qtxt{font-size:clamp(1rem,3vw,1.25rem);font-weight:800;text-align:center;color:#2C3E50;line-height:1.4;margin-bottom:1rem;}
+.agrid{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin-bottom:.8rem;}
+.abtn{
+  background:#fff;border:3px solid #e0e0e0;border-radius:16px;
+  padding:.9rem .6rem;font-size:.95rem;font-weight:800;
+  font-family:'Nunito',sans-serif;cursor:pointer;text-align:center;
+  box-shadow:0 4px 0 #e0e0e0;transition:transform .15s;
+  color:#2C3E50;display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.abtn .ae{font-size:1.8rem;}
+.abtn:hover{transform:scale(1.04);border-color:#4ECDC4;}
+.abtn.ok{background:#AFFFB3;border-color:#5DBB63;box-shadow:0 4px 0 #3D8B42;}
+.abtn.no{background:#FFD1D1;border-color:#FF6B6B;box-shadow:0 4px 0 #CC3333;}
+.abtn:disabled{cursor:default;}
+.factbox{
+  background:#EAF9FF;border-radius:14px;padding:.8rem 1rem;
+  font-size:.9rem;font-weight:700;color:#1a5c8c;text-align:center;
+  display:none;margin-bottom:.6rem;
+}
+
+/* ===== CELEBRATE ===== */
+.celmodal{
+  position:fixed;inset:0;background:rgba(0,0,0,.55);
+  display:none;align-items:center;justify-content:center;z-index:80;
+}
+.celmodal.open{display:flex;}
+.celbox{
+  background:#fff;border-radius:32px;padding:2.2rem 1.8rem;text-align:center;
+  max-width:340px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);
+  animation:popIn .4s ease;
+}
+.cel-em{font-size:4.5rem;}
+.cel-title{font-family:'Fredoka One',cursive;font-size:2rem;color:#FF6B6B;margin:.4rem 0;}
+.cel-xp{font-size:1.2rem;font-weight:800;color:#FFD700;background:#FFF8E1;border-radius:50px;padding:6px 18px;display:inline-block;margin:.4rem 0;box-shadow:0 3px 0 #FFD700;}
+.confetti-wrap{position:fixed;inset:0;pointer-events:none;z-index:81;}
+.cp{position:absolute;top:-20px;width:8px;height:8px;border-radius:2px;animation:fall linear forwards;}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0;}}
+
+/* ===== LEVELUP ===== */
+.lvlmodal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:90;}
+.lvlmodal.open{display:flex;}
+.lvlbox{background:linear-gradient(135deg,#FFD700,#FF9500);border-radius:32px;padding:2.2rem 1.8rem;text-align:center;max-width:300px;width:90%;animation:popIn .4s ease;box-shadow:0 20px 60px rgba(255,165,0,.5);}
+.lvl-title{font-family:'Fredoka One',cursive;font-size:2.5rem;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.2);}
+.lvl-num{font-size:4.5rem;font-family:'Fredoka One',cursive;color:#fff;line-height:1;}
+.lvl-sub{font-size:1.1rem;font-weight:800;color:rgba(255,255,255,.9);margin-bottom:.8rem;}
+
+/* ===== CHAT ===== */
+.chat-fab{
+  position:fixed;bottom:1.2rem;right:1.2rem;
+  width:54px;height:54px;border-radius:50%;
+  background:#FF6B6B;border:none;font-size:1.5rem;color:#fff;
+  cursor:pointer;box-shadow:0 5px 0 #CC3333;z-index:40;
+  display:none;align-items:center;justify-content:center;
+}
+.chat-fab.vis{display:flex;}
+.chat-panel{
+  position:fixed;bottom:4.8rem;right:1.2rem;
+  width:min(340px,calc(100vw - 2rem));
+  background:#fff;border-radius:22px;
+  box-shadow:0 12px 40px rgba(0,0,0,.2);
+  display:none;flex-direction:column;overflow:hidden;z-index:39;
+}
+.chat-panel.open{display:flex;}
+.chat-head{background:linear-gradient(135deg,#FF6B6B,#FF9F43);color:#fff;padding:.8rem 1rem;font-family:'Fredoka One',cursive;font-size:1rem;display:flex;align-items:center;gap:6px;}
+.chat-msgs{flex:1;overflow-y:auto;padding:.7rem;max-height:180px;display:flex;flex-direction:column;gap:6px;}
+.cmsg{padding:7px 11px;border-radius:14px 14px 14px 3px;font-size:.85rem;font-weight:700;max-width:85%;animation:popIn .2s ease;}
+.cmsg.me{background:#E8F4FF;margin-left:auto;border-radius:14px 14px 3px 14px;color:#2C3E50;}
+.cmsg.fr{background:#AFFFB3;color:#1a5c20;}
+.enc-grid{padding:.7rem;border-top:2px dashed #f0f0f0;display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.enc-btn{background:linear-gradient(135deg,#B5EAD7,#A8E6CF);border:2px solid #5DBB63;border-radius:50px;padding:6px 8px;font-size:.75rem;font-weight:800;cursor:pointer;color:#1a5c20;box-shadow:0 3px 0 #3D8B42;transition:transform .15s;}
+.enc-btn:active{transform:scale(.95);}
+.chat-tip{padding:5px 10px 7px;font-size:.68rem;color:#7F8C8D;text-align:center;font-weight:600;}
+</style>
+</head>
+<body>
+
+<!-- ===== AVATAR SELECT ===== -->
+<div id="s-avatar" class="screen active">
+  <h1>🔬 ¡Aventura Científica!</h1>
+  <p>¡Elige tu explorador!</p>
+  <div class="av-grid">
+    <div class="av-card" onclick="selAv(0)"><div class="em">🧑‍🚀</div><div class="nm">Astronauta</div></div>
+    <div class="av-card" onclick="selAv(1)"><div class="em">👩‍🔬</div><div class="nm">Dr. Sol</div></div>
+    <div class="av-card" onclick="selAv(2)"><div class="em">🦸</div><div class="nm">Superhéroe</div></div>
+    <div class="av-card" onclick="selAv(3)"><div class="em">🧙‍♂️</div><div class="nm">Mago Lab</div></div>
+    <div class="av-card" onclick="selAv(4)"><div class="em">🐸</div><div class="nm">Ranita</div></div>
+    <div class="av-card" onclick="selAv(5)"><div class="em">🦊</div><div class="nm">Zorro</div></div>
+  </div>
+  <div class="name-row">
+    <input id="pname" type="text" placeholder="¡Tu nombre!" maxlength="14"/>
+    <button class="btn" onclick="startGame()">¡Vamos! 🚀</button>
+  </div>
+</div>
+
+<!-- ===== WORLD SELECT ===== -->
+<div id="s-worlds" class="screen">
+  <div class="topbar">
+    <span class="av" id="tb-av">🧑‍🚀</span>
+    <span class="pname" id="tb-name">Explorador</span>
+    <div class="xpwrap">
+      <div class="xplbl">XP</div>
+      <div class="xpbar"><div class="xpfill" id="xpf" style="width:0%"></div></div>
+    </div>
+    <div class="lvl" id="lvlbadge">⭐ Nv.1</div>
+  </div>
+  <div class="wtitle">🌍 ¡Elige tu Mundo!</div>
+  <div class="wgrid">
+    <div class="wcard wsky" id="wc-0" onclick="enterWorld(0)">
+      <div class="we">☁️</div><div class="wn">Cielo y Clima</div><div class="ws" id="ws-0">☆☆☆</div>
+    </div>
+    <div class="wcard wvolc" id="wc-1" onclick="enterWorld(1)">
+      <div class="we">🌋</div><div class="wn">Tierra y Rocas</div><div class="ws" id="ws-1">☆☆☆</div>
+    </div>
+    <div class="wcard wocean" id="wc-2" onclick="enterWorld(2)">
+      <div class="we">🐠</div><div class="wn">Vida Marina</div><div class="ws" id="ws-2">☆☆☆</div>
+      <div class="wlock">🔒</div>
+    </div>
+    <div class="wcard wjungle" id="wc-3" onclick="enterWorld(3)">
+      <div class="we">🌿</div><div class="wn">Plantas</div><div class="ws" id="ws-3">☆☆☆</div>
+      <div class="wlock">🔒</div>
+    </div>
+    <div class="wcard wspace" id="wc-4" onclick="enterWorld(4)">
+      <div class="we">🚀</div><div class="wn">Espacio</div><div class="ws" id="ws-4">☆☆☆</div>
+      <div class="wlock">🔒</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== GAME WORLD ===== -->
+<div id="s-game" class="screen">
+  <canvas id="game-canvas"></canvas>
+
+  <!-- HUD -->
+  <div class="game-hud">
+    <span class="hud-av" id="h-av">🧑‍🚀</span>
+    <span class="hud-name" id="h-name">Explorador</span>
+    <div class="hud-xp">
+      <div class="hud-xpbar"><div class="hud-xpfill" id="h-xpf" style="width:0%"></div></div>
+    </div>
+    <span class="hud-lvl" id="h-lvl">⭐ Nv.1</span>
+    <button class="back-map" onclick="goWorlds()">🗺️ Mapa</button>
+  </div>
+
+  <!-- NEARBY HINT -->
+  <div class="nearby-hint" id="nearby-hint">¡Presiona A!</div>
+
+  <!-- D-PAD -->
+  <div class="dpad">
+    <button class="dp dp-up" id="dp-u">⬆️</button>
+    <button class="dp dp-left" id="dp-l">⬅️</button>
+    <div class="dp dp-mid">TÚ</div>
+    <button class="dp dp-right" id="dp-r">➡️</button>
+    <button class="dp dp-down" id="dp-d">⬇️</button>
+  </div>
+
+  <!-- INTERACT -->
+  <button class="interact-btn" id="int-btn" onclick="interact()">⚡A</button>
+</div>
+
+<!-- ===== QUESTION MODAL ===== -->
+<div class="qmodal" id="qmodal">
+  <div class="qbox">
+    <div class="qscene" id="qscene">☁️</div>
+    <div class="qtxt" id="qtxt">Cargando...</div>
+    <div class="agrid" id="agrid"></div>
+    <div class="factbox" id="factbox"></div>
+    <button class="btn b" id="qnext" onclick="nextQ()" style="width:100%;display:none;">¡Siguiente! →</button>
+  </div>
+</div>
+
+<!-- ===== CELEBRATE ===== -->
+<div class="celmodal" id="celmodal">
+  <div class="confetti-wrap" id="confwrap"></div>
+  <div class="celbox">
+    <div class="cel-em" id="cel-em">🎉</div>
+    <div class="cel-title" id="cel-title">¡Mundo completado!</div>
+    <div style="font-size:.95rem;color:#7F8C8D;margin-bottom:.4rem;" id="cel-sub"></div>
+    <div class="cel-xp" id="cel-xp">+50 XP ⭐</div>
+    <button class="btn g" style="margin-top:1rem" onclick="closeCel()">🗺️ ¡Al Mapa!</button>
+  </div>
+</div>
+
+<!-- ===== LEVEL UP ===== -->
+<div class="lvlmodal" id="lvlmodal">
+  <div class="lvlbox">
+    <div class="lvl-title">¡SUBISTE!</div>
+    <div class="lvl-num" id="lvl-num">2</div>
+    <div class="lvl-sub" id="lvl-sub">¡Eres una Estrella!</div>
+    <button class="btn" style="background:#fff;color:#FF9500;box-shadow:0 6px 0 rgba(0,0,0,.15);margin-top:.5rem" onclick="closeLvl()">¡Genial! 🌟</button>
+  </div>
+</div>
+
+<!-- ===== CHAT ===== -->
+<button class="chat-fab" id="chat-fab" onclick="toggleChat()">💬</button>
+<div class="chat-panel" id="chat-panel">
+  <div class="chat-head">💬 Chat de Amigos <span style="font-size:.8rem;margin-left:auto;opacity:.85">¡Seguro!</span></div>
+  <div class="chat-msgs" id="chat-msgs">
+    <div class="cmsg fr">🌟 Estrellita: ¡Hola! ¡Tú puedes!</div>
+  </div>
+  <div class="enc-grid" id="enc-grid"></div>
+  <div class="chat-tip">💡 ¡Elige un mensaje para tus amigos!</div>
+</div>
+
+<script>
+// ============================================================
+//  DATA
+// ============================================================
+const AVATARS = ['🧑‍🚀','👩‍🔬','🦸','🧙‍♂️','🐸','🦊'];
+
+// World themes: bg gradient colors, ground color, sky color, objects
+const WORLDS = [
+  { name:'Cielo y Clima', badge:'☁️', bgTop:'#87CEEB', bgBot:'#B5EAD7', ground:'#5DBB63',
+    objects:[
+      {x:200,y:0,em:'☀️',sz:60,lbl:'El Sol',asked:false},
+      {x:500,y:0,em:'☁️',sz:50,lbl:'Nube',asked:false},
+      {x:850,y:0,em:'🌈',sz:55,lbl:'Arcoíris',asked:false},
+      {x:1200,y:0,em:'⛈️',sz:55,lbl:'Tormenta',asked:false},
+      {x:1500,y:0,em:'❄️',sz:50,lbl:'Nieve',asked:false},
+    ], color:'#4e8bcc'},
+  { name:'Tierra y Rocas', badge:'🌋', bgTop:'#FF9966', bgBot:'#cc6600', ground:'#8B6914',
+    objects:[
+      {x:200,y:0,em:'🪨',sz:55,lbl:'Roca',asked:false},
+      {x:500,y:0,em:'🌋',sz:65,lbl:'Volcán',asked:false},
+      {x:850,y:0,em:'💎',sz:50,lbl:'Cristal',asked:false},
+      {x:1200,y:0,em:'🦴',sz:50,lbl:'Fósil',asked:false},
+      {x:1500,y:0,em:'⛰️',sz:55,lbl:'Montaña',asked:false},
+    ], color:'#cc4400'},
+  { name:'Vida Marina', badge:'🐠', bgTop:'#006994', bgBot:'#001a33', ground:'#DEB887',
+    objects:[
+      {x:200,y:0,em:'🐠',sz:55,lbl:'Pez',asked:false},
+      {x:500,y:0,em:'🐙',sz:60,lbl:'Pulpo',asked:false},
+      {x:850,y:0,em:'🦈',sz:65,lbl:'Tiburón',asked:false},
+      {x:1200,y:0,em:'🪸',sz:50,lbl:'Coral',asked:false},
+      {x:1500,y:0,em:'🐬',sz:60,lbl:'Delfín',asked:false},
+    ], color:'#007EFF'},
+  { name:'Plantas', badge:'🌿', bgTop:'#56ab2f', bgBot:'#1e7c21', ground:'#3D8B42',
+    objects:[
+      {x:200,y:0,em:'🌱',sz:50,lbl:'Semilla',asked:false},
+      {x:500,y:0,em:'🌻',sz:65,lbl:'Girasol',asked:false},
+      {x:850,y:0,em:'🍂',sz:50,lbl:'Hojas',asked:false},
+      {x:1200,y:0,em:'🌳',sz:70,lbl:'Árbol',asked:false},
+      {x:1500,y:0,em:'🐝',sz:55,lbl:'Abeja',asked:false},
+    ], color:'#1e7c21'},
+  { name:'Espacio', badge:'🚀', bgTop:'#0d0d2b', bgBot:'#1a0533', ground:'#2d2d5e',
+    objects:[
+      {x:200,y:0,em:'🌕',sz:60,lbl:'Luna',asked:false},
+      {x:500,y:0,em:'⭐',sz:50,lbl:'Estrella',asked:false},
+      {x:850,y:0,em:'🪐',sz:65,lbl:'Planeta',asked:false},
+      {x:1200,y:0,em:'🚀',sz:55,lbl:'Cohete',asked:false},
+      {x:1500,y:0,em:'☄️',sz:55,lbl:'Cometa',asked:false},
+    ], color:'#6c3483'},
+];
+
+const QS = {
+  0:[
+    {sc:'☀️',tx:'¿Qué nos da el sol?',ans:[{e:'🌙',t:'Luz de luna'},{e:'☀️',t:'Luz y calor'},{e:'❄️',t:'Frío'},{e:'💨',t:'Viento'}],ok:1,fact:'¡El sol nos da luz y calor! Ayuda a crecer las plantas 🌻'},
+    {sc:'🌧️',tx:'¿De qué está hecha la lluvia?',ans:[{e:'🧃',t:'Jugo'},{e:'💧',t:'Agua'},{e:'🥛',t:'Leche'},{e:'🧂',t:'Sal'}],ok:1,fact:'¡La lluvia son gotitas de agua que caen de las nubes! 💧'},
+    {sc:'🌈',tx:'¿Cuándo aparece el arcoíris?',ans:[{e:'🌙',t:'De noche'},{e:'⛄',t:'Con nieve'},{e:'🌧️☀️',t:'Lluvia + sol'},{e:'🌪️',t:'Tormenta'}],ok:2,fact:'El arcoíris aparece cuando el sol brilla en las gotitas de lluvia! 🌈'},
+    {sc:'❄️',tx:'¿De qué está hecha la nieve?',ans:[{e:'🧁',t:'Azúcar'},{e:'💧',t:'Agua congelada'},{e:'🧻',t:'Papel'},{e:'🥛',t:'Leche'}],ok:1,fact:'¡La nieve es agua congelada! Cada copo es único ❄️'},
+    {sc:'💨',tx:'¿Qué es el viento?',ans:[{e:'👻',t:'Un fantasma'},{e:'💨',t:'Aire que se mueve'},{e:'🌊',t:'Agua'},{e:'🔥',t:'Fuego'}],ok:1,fact:'¡El viento es aire que se mueve! Puede volar cometas 🪁'},
+  ],
+  1:[
+    {sc:'🌋',tx:'¿Qué sale de un volcán?',ans:[{e:'🧃',t:'Jugo'},{e:'🌈',t:'Arcoíris'},{e:'🌋',t:'Lava caliente'},{e:'🐠',t:'Peces'}],ok:2,fact:'¡Los volcanes lanzan lava muy caliente! 🌋'},
+    {sc:'🪨',tx:'¿Cuánto tiempo tarda en formarse una roca?',ans:[{e:'⏰',t:'1 hora'},{e:'📅',t:'Millones de años'},{e:'🕐',t:'Un día'},{e:'🗓️',t:'Una semana'}],ok:1,fact:'¡Las rocas tardan millones de años en formarse! Son muy viejas ⏳'},
+    {sc:'🌍',tx:'¿Cómo se llama la capa exterior de la Tierra?',ans:[{e:'🎂',t:'El pastel'},{e:'🍕',t:'La corteza'},{e:'🧅',t:'La cáscara'},{e:'🥚',t:'La cáscara'}],ok:1,fact:'¡Vivimos en la corteza de la Tierra, como la parte de arriba de una pizza! 🍕'},
+    {sc:'🏜️',tx:'¿Por qué los desiertos son secos?',ans:[{e:'🐪',t:'Los camellos'},{e:'🌞',t:'Poca lluvia'},{e:'🌊',t:'Mucho mar'},{e:'🌨️',t:'Mucha nieve'}],ok:1,fact:'¡Los desiertos reciben muy poca lluvia! Pueden pasar años sin ninguna 🏜️'},
+    {sc:'🌱🪨',tx:'¿En qué crecen las plantas?',ans:[{e:'🪨',t:'Rocas duras'},{e:'🌊',t:'El océano'},{e:'🌱',t:'La tierra'},{e:'🌫️',t:'Las nubes'}],ok:2,fact:'¡Las plantas crecen en la tierra, que tiene trocitos de roca y seres vivos! 🌱'},
+  ],
+  2:[
+    {sc:'🐠🌊',tx:'¿Qué usan los peces para respirar?',ans:[{e:'👃',t:'Nariz'},{e:'🫁',t:'Pulmones'},{e:'🐟',t:'Branquias'},{e:'🫧',t:'Burbujas'}],ok:2,fact:'¡Los peces respiran con branquias que sacan oxígeno del agua! 🐟'},
+    {sc:'🐙',tx:'¿Cuántos brazos tiene un pulpo?',ans:[{e:'4️⃣',t:'4 brazos'},{e:'6️⃣',t:'6 brazos'},{e:'8️⃣',t:'8 brazos'},{e:'1️⃣0️⃣',t:'10 brazos'}],ok:2,fact:'¡Los pulpos tienen 8 brazos! Cada brazo puede oler y sentir 🐙'},
+    {sc:'🐬',tx:'¿Qué tipo de animal es un delfín?',ans:[{e:'🐟',t:'Un pez'},{e:'🦈',t:'Un tiburón'},{e:'🐬',t:'Un mamífero'},{e:'🦑',t:'Un calamar'}],ok:2,fact:'¡Los delfines son mamíferos como nosotros! Respiran aire 🐬'},
+    {sc:'🌊🌙',tx:'¿Qué hace las olas del océano?',ans:[{e:'🐳',t:'Ballenas'},{e:'💨',t:'El viento'},{e:'🚤',t:'Barcos'},{e:'🐠',t:'Peces'}],ok:1,fact:'¡El viento mueve el agua y crea las olas! Más viento = olas más grandes 🌊'},
+    {sc:'🪸',tx:'¿De qué color es un arrecife de coral sano?',ans:[{e:'⬛',t:'Negro'},{e:'⚪',t:'Blanco'},{e:'🌈',t:'Colorido'},{e:'🟤',t:'Café'}],ok:2,fact:'¡Los arrecifes sanos son llenos de colores y hogar de miles de animales! 🪸'},
+  ],
+  3:[
+    {sc:'🌻',tx:'¿Qué necesitan las plantas para hacer comida?',ans:[{e:'🍕',t:'Pizza'},{e:'☀️💧',t:'Sol y agua'},{e:'🧁',t:'Pastel'},{e:'🧲',t:'Imán'}],ok:1,fact:'¡Las plantas hacen comida con la luz del sol y el agua! Se llama fotosíntesis ☀️'},
+    {sc:'🌱',tx:'¿En qué se convierte una semilla?',ans:[{e:'🪨',t:'Una roca'},{e:'☁️',t:'Una nube'},{e:'🌱',t:'Una planta'},{e:'🌊',t:'Agua'}],ok:2,fact:'¡Las semillas son plantas bebé! Con agua, tierra y sol, crecen 🌱'},
+    {sc:'🍂',tx:'¿Por qué cambian de color las hojas en otoño?',ans:[{e:'🎨',t:'Las pintan'},{e:'🌞',t:'Menos luz solar'},{e:'🌧️',t:'Mucha lluvia'},{e:'🐛',t:'Los insectos'}],ok:1,fact:'Con menos luz en otoño, las hojas muestran sus colores rojos, naranjas y amarillos 🍂'},
+    {sc:'🌸',tx:'¿Qué recolectan las abejas de las flores?',ans:[{e:'💧',t:'Agua'},{e:'🍯',t:'Néctar'},{e:'🧂',t:'Sal'},{e:'🪨',t:'Rocas'}],ok:1,fact:'¡Las abejas recolectan néctar y lo convierten en miel! 🍯'},
+    {sc:'🌳',tx:'¿Para qué sirven las raíces?',ans:[{e:'🌸',t:'Flores'},{e:'☀️',t:'Luz solar'},{e:'💧',t:'Beber agua'},{e:'🍃',t:'Hojas'}],ok:2,fact:'¡Las raíces beben agua y nutrientes del suelo y sostienen la planta! 🌳'},
+  ],
+  4:[
+    {sc:'🌕',tx:'¿Qué forma tiene la Luna?',ans:[{e:'🟥',t:'Cuadrada'},{e:'⭐',t:'Estrella'},{e:'🔵',t:'Redonda'},{e:'🔺',t:'Triángulo'}],ok:2,fact:'¡La Luna es redonda como una pelota! Refleja la luz del sol de noche 🌕'},
+    {sc:'⭐',tx:'¿De qué está hecha una estrella?',ans:[{e:'💎',t:'Diamante'},{e:'🔥',t:'Gas caliente'},{e:'❄️',t:'Hielo'},{e:'🪨',t:'Roca'}],ok:1,fact:'¡Las estrellas son enormes bolas de gas caliente, igual que nuestro Sol! ⭐'},
+    {sc:'🌍',tx:'¿Cuánto tarda la Tierra en rodear al Sol?',ans:[{e:'1️⃣',t:'1 día'},{e:'3️⃣0️⃣',t:'30 días'},{e:'3️⃣6️⃣5️⃣',t:'365 días'},{e:'1️⃣0️⃣',t:'10 días'}],ok:2,fact:'¡La Tierra tarda 365 días en rodear al Sol. ¡Eso es un año! 🌍'},
+    {sc:'🚀',tx:'¿Qué usan los astronautas en el espacio?',ans:[{e:'👙',t:'Traje de baño'},{e:'🧥',t:'Abrigo'},{e:'👾',t:'Traje espacial'},{e:'🩳',t:'Shorts'}],ok:2,fact:'¡Los astronautas usan trajes especiales para respirar en el espacio! 🚀'},
+    {sc:'🌙✨',tx:'¿Por qué vemos estrellas de noche pero no de día?',ans:[{e:'😴',t:'Duermen'},{e:'☀️',t:'El sol es muy brillante'},{e:'☁️',t:'Las nubes'},{e:'🌊',t:'Se van al agua'}],ok:1,fact:'¡Las estrellas siempre están ahí! Pero el sol es tan brillante que no las vemos de día 🌟'},
+  ],
+};
+
+const ENCOURAGEMENTS = [
+  '¡Eres increíble! 🌟','¡Sigue adelante! 💪','¡Qué listo/a! 🧠','¡Tú puedes! 🎉',
+  '¡Muy bien! 👍','¡Eres una estrella! ⭐','¡Fantástico! 🦸','¡Creo en ti! 💛',
+  '¡Genial! 😎','¡Así se hace! 🎈',
+];
+
+// ============================================================
+//  STATE
+// ============================================================
+let G = {
+  av:0, name:'', xp:0, level:1,
+  stars:[0,0,0,0,0],
+  world:0,
+  // walking
+  px:0, py:0, // player position (world coords)
+  facing:1, // 1=right, -1=left
+  moving:{u:false,d:false,l:false,r:false},
+  // objects in current world (cloned each enter)
+  objs:[],
+  nearObj:null,
+  // questions
+  qIdx:0, correct:0, answered:false,
+  objsAsked:0,
+};
+
+// ============================================================
+//  AVATAR SELECT
+// ============================================================
+function selAv(i){
+  G.av=i;
+  document.querySelectorAll('.av-card').forEach((c,j)=>c.classList.toggle('sel',j===i));
+}
+function startGame(){
+  G.name=document.getElementById('pname').value.trim()||'Explorador';
+  show('s-worlds');
+  refreshTopbar();
+  refreshWorldCards();
+  document.getElementById('chat-fab').classList.add('vis');
+  buildChat();
+}
+
+// ============================================================
+//  SCREENS
+// ============================================================
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ============================================================
+//  TOPBAR / WORLDS
+// ============================================================
+function refreshTopbar(){
+  const av=AVATARS[G.av];
+  document.getElementById('tb-av').textContent=av;
+  document.getElementById('tb-name').textContent=G.name;
+  const pct=(G.xp%100);
+  document.getElementById('xpf').style.width=pct+'%';
+  document.getElementById('lvlbadge').textContent='⭐ Nv.'+G.level;
+  // hud
+  document.getElementById('h-av').textContent=av;
+  document.getElementById('h-name').textContent=G.name;
+  document.getElementById('h-xpf').style.width=pct+'%';
+  document.getElementById('h-lvl').textContent='⭐ Nv.'+G.level;
+}
+function refreshWorldCards(){
+  for(let i=0;i<5;i++){
+    const s=G.stars[i];
+    document.getElementById('ws-'+i).textContent=(s>0?'⭐'.repeat(s):'')+('☆'.repeat(3-s));
+    const card=document.getElementById('wc-'+i);
+    const lk=card.querySelector('.wlock');
+    if(i<2){card.classList.remove('locked');if(lk)lk.remove();}
+    else if(G.stars[i-1]>0){card.classList.remove('locked');if(lk)lk.remove();}
+  }
+}
+
+// ============================================================
+//  ENTER WORLD — start walking scene
+// ============================================================
+function enterWorld(idx){
+  const card=document.getElementById('wc-'+idx);
+  if(card.classList.contains('locked')){shakeCard(card);return;}
+  G.world=idx;
+  G.qIdx=0; G.correct=0; G.objsAsked=0;
+  // Clone objects and reset asked
+  G.objs=WORLDS[idx].objects.map(o=>({...o,asked:false}));
+  // Player starts left
+  G.px=80; G.py=0;
+  G.nearObj=null;
+  show('s-game');
+  startLoop();
+}
+function shakeCard(c){
+  c.style.transform='scale(1.05) rotate(3deg)';
+  setTimeout(()=>{c.style.transform='scale(1.05) rotate(-3deg)';},100);
+  setTimeout(()=>{c.style.transform='';},200);
+}
+function goWorlds(){
+  stopLoop();
+  show('s-worlds');
+  refreshTopbar();
+  refreshWorldCards();
+}
+
+// ============================================================
+//  GAME LOOP
+// ============================================================
+const canvas=document.getElementById('game-canvas');
+const ctx=canvas.getContext('2d');
+let raf=null;
+const WORLD_W=1800; // virtual world width
+const PLAYER_W=44;
+const PLAYER_H=52;
+const GROUND_Y_FRAC=0.72; // ground level as fraction of canvas height
+const INTERACT_DIST=90;
+
+function startLoop(){
+  resizeCanvas();
+  loop();
+}
+function stopLoop(){
+  if(raf){cancelAnimationFrame(raf);raf=null;}
+}
+function resizeCanvas(){
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+}
+window.addEventListener('resize',()=>{if(document.getElementById('s-game').classList.contains('active'))resizeCanvas();});
+
+const SPEED=3.5;
+let frame=0;
+
+function loop(){
+  raf=requestAnimationFrame(loop);
+  frame++;
+
+  // Movement
+  if(G.moving.l) G.px=Math.max(30,G.px-SPEED);
+  if(G.moving.r) G.px=Math.min(WORLD_W-30,G.px+SPEED);
+  if(G.moving.l) G.facing=-1;
+  if(G.moving.r) G.facing=1;
+
+  draw();
+  checkNearby();
+}
+
+function draw(){
+  const W=canvas.width, H=canvas.height;
+  const w=WORLDS[G.world];
+  const GY=Math.floor(H*GROUND_Y_FRAC);
+
+  // Camera: follow player, clamp
+  let cam=G.px-W/2;
+  cam=Math.max(0,Math.min(WORLD_W-W,cam));
+
+  // Sky gradient
+  const sky=ctx.createLinearGradient(0,0,0,GY);
+  sky.addColorStop(0,w.bgTop);
+  sky.addColorStop(1,w.bgBot);
+  ctx.fillStyle=sky;
+  ctx.fillRect(0,0,W,GY);
+
+  // Ground
+  ctx.fillStyle=w.ground;
+  ctx.fillRect(0,GY,W,H-GY);
+  // Ground line
+  ctx.fillStyle='rgba(0,0,0,.15)';
+  ctx.fillRect(0,GY,W,4);
+
+  // Decorative background elements (parallax stars for space, clouds for sky, etc.)
+  drawBgDecor(ctx,W,H,GY,cam,w,frame);
+
+  // Objects
+  G.objs.forEach(obj=>{
+    const sx=obj.x-cam;
+    if(sx<-80||sx>W+80)return;
+    const sy=GY-obj.sz*0.5;
+    // floating animation
+    const float=Math.sin(frame*0.05+obj.x*0.01)*6;
+    ctx.font=obj.sz+'px serif';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillText(obj.em,sx,sy+float);
+    // label
+    if(!obj.asked){
+      ctx.font='bold 13px Nunito, sans-serif';
+      ctx.fillStyle='rgba(255,255,255,.9)';
+      const lw=ctx.measureText(obj.lbl).width+14;
+      roundRect(ctx,sx-lw/2,sy+float+obj.sz/2+4,lw,22,8);
+      ctx.fill();
+      ctx.fillStyle='#2C3E50';
+      ctx.fillText(obj.lbl,sx,sy+float+obj.sz/2+15);
+    } else {
+      // answered — show checkmark
+      ctx.font='22px serif';
+      ctx.fillText('✅',sx,sy+float+obj.sz/2+14);
+    }
+  });
+
+  // Player
+  drawPlayer(ctx,G.px-cam,GY,G.facing,frame,G.moving.l||G.moving.r);
+
+  // Near indicator
+  if(G.nearObj){
+    const sx=G.nearObj.x-cam;
+    const sy=Math.floor(H*GROUND_Y_FRAC)-G.nearObj.sz*0.5+Math.sin(frame*0.05+G.nearObj.x*0.01)*6;
+    // pulsing ring
+    const pulse=1+0.12*Math.sin(frame*0.15);
+    ctx.strokeStyle='#FFD700';
+    ctx.lineWidth=3;
+    ctx.beginPath();
+    ctx.arc(sx,sy,G.nearObj.sz*0.6*pulse,0,Math.PI*2);
+    ctx.stroke();
+  }
+}
+
+function drawPlayer(ctx,x,groundY,facing,frame,moving){
+  const by=groundY; // feet on ground
+  // bob when moving
+  const bob=moving?Math.sin(frame*0.25)*4:0;
+  const bodyY=by-PLAYER_H+bob;
+
+  ctx.save();
+  ctx.translate(x,0);
+  if(facing<0) ctx.scale(-1,1);
+
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,.2)';
+  ctx.beginPath();
+  ctx.ellipse(0,by,18,6,0,0,Math.PI*2);
+  ctx.fill();
+
+  // Avatar emoji as player
+  ctx.font=(PLAYER_H-4)+'px serif';
+  ctx.textAlign='center';
+  ctx.textBaseline='bottom';
+  ctx.fillText(AVATARS[G.av],0,by+bob);
+
+  // Name tag
+  ctx.font='bold 11px Nunito,sans-serif';
+  ctx.textBaseline='top';
+  const nw=ctx.measureText(G.name).width+12;
+  ctx.fillStyle='rgba(0,0,0,.55)';
+  roundRect(ctx,-nw/2,by-PLAYER_H+bob-22,nw,18,6);
+  ctx.fill();
+  ctx.fillStyle='#fff';
+  ctx.fillText(G.name,0,by-PLAYER_H+bob-18);
+
+  ctx.restore();
+}
+
+function drawBgDecor(ctx,W,H,GY,cam,world,frame){
+  // Simple parallax decor per world
+  const items=[];
+  if(world.badge==='☁️'){
+    // floating clouds far bg
+    for(let i=0;i<8;i++) items.push({em:'☁️',x:i*250+50,y:60+Math.sin(i)*30,sz:36,par:0.3});
+  } else if(world.badge==='🌋'){
+    for(let i=0;i<6;i++) items.push({em:'🌄',x:i*320+80,y:GY-80,sz:70,par:0.2});
+  } else if(world.badge==='🐠'){
+    for(let i=0;i<10;i++) items.push({em:'🫧',x:i*180+40,y:40+Math.sin(i*1.3)*60,sz:20,par:0.15});
+    // water tint
+    ctx.fillStyle='rgba(0,80,150,.25)';
+    ctx.fillRect(0,0,W,GY);
+  } else if(world.badge==='🌿'){
+    for(let i=0;i<8;i++) items.push({em:'🌲',x:i*220+60,y:GY-90,sz:80,par:0.25});
+  } else {
+    // space: stars
+    ctx.fillStyle='rgba(255,255,255,.6)';
+    for(let i=0;i<60;i++){
+      const sx=((i*137+200)%WORLD_W)-cam*0.1;
+      const sy=((i*97)%(GY-20))+10;
+      const r=i%3===0?2:1;
+      ctx.beginPath();ctx.arc((sx%W+W)%W,sy,r,0,Math.PI*2);ctx.fill();
+    }
+  }
+  items.forEach(it=>{
+    const sx=(it.x-cam*it.par+W*10)%W; // wrap
+    ctx.font=it.sz+'px serif';
+    ctx.textAlign='center';
+    ctx.textBaseline='bottom';
+    ctx.globalAlpha=0.55;
+    ctx.fillText(it.em,sx,it.y+it.sz);
+    ctx.globalAlpha=1;
+  });
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+// ============================================================
+//  NEARBY CHECK
+// ============================================================
+function checkNearby(){
+  let near=null;
+  G.objs.forEach(obj=>{
+    if(obj.asked)return;
+    if(Math.abs(obj.x-G.px)<INTERACT_DIST) near=obj;
+  });
+  G.nearObj=near;
+  const hint=document.getElementById('nearby-hint');
+  hint.style.display=near?'block':'none';
+}
+
+// ============================================================
+//  INTERACT
+// ============================================================
+function interact(){
+  if(!G.nearObj)return;
+  const obj=G.nearObj;
+  // pick question for this object
+  const worldQs=QS[G.world];
+  const q=worldQs[G.objsAsked % worldQs.length];
+  G.qIdx=G.objsAsked % worldQs.length;
+  G.answered=false;
+  openQModal(q,obj);
+}
+
+function openQModal(q,obj){
+  document.getElementById('qscene').textContent=q.sc;
+  document.getElementById('qtxt').textContent=q.tx;
+  document.getElementById('factbox').style.display='none';
+  document.getElementById('qnext').style.display='none';
+  const grid=document.getElementById('agrid');
+  grid.innerHTML='';
+  q.ans.forEach((a,i)=>{
+    const btn=document.createElement('button');
+    btn.className='abtn';
+    btn.innerHTML=`<span class="ae">${a.e}</span>${a.t}`;
+    btn.onclick=()=>answerQ(i,btn,q,obj);
+    grid.appendChild(btn);
+  });
+  document.getElementById('qmodal').classList.add('open');
+}
+
+function answerQ(idx,btn,q,obj){
+  if(G.answered)return;
+  G.answered=true;
+  document.querySelectorAll('.abtn').forEach(b=>b.disabled=true);
+  const fb=document.getElementById('factbox');
+  if(idx===q.ok){
+    btn.classList.add('ok');
+    G.correct++;
+    gainXP(20);
+    fb.textContent='🎉 '+q.fact;
+  } else {
+    btn.classList.add('no');
+    document.querySelectorAll('.abtn')[q.ok].classList.add('ok');
+    fb.textContent='💡 '+q.fact;
+  }
+  fb.style.display='block';
+  document.getElementById('qnext').style.display='block';
+  // mark object
+  if(obj) obj.asked=true;
+  G.objsAsked++;
+}
+
+function nextQ(){
+  document.getElementById('qmodal').classList.remove('open');
+  // Check if all objects answered
+  const allDone=G.objs.every(o=>o.asked);
+  if(allDone) setTimeout(finishWorld,300);
+}
+
+// ============================================================
+//  XP & LEVEL
+// ============================================================
+function gainXP(n){
+  const prev=G.level;
+  G.xp+=n;
+  G.level=1+Math.floor(G.xp/100);
+  refreshTopbar();
+  if(G.level>prev) setTimeout(showLvlUp,400);
+}
+function showLvlUp(){
+  const titles=['','Curioso/a 🌱','Fan de Ciencia 🔬','Explorador/a 🧪','Científico/a ⭐','¡Héroe de Ciencia! 🦸'];
+  document.getElementById('lvl-num').textContent=G.level;
+  document.getElementById('lvl-sub').textContent=titles[G.level]||'¡Maestro/a de Ciencia! 🏆';
+  document.getElementById('lvlmodal').classList.add('open');
+}
+function closeLvl(){document.getElementById('lvlmodal').classList.remove('open');}
+
+// ============================================================
+//  FINISH WORLD
+// ============================================================
+function finishWorld(){
+  const total=G.objs.length;
+  const pct=G.correct/total;
+  const stars=pct===1?3:pct>=0.6?2:1;
+  G.stars[G.world]=Math.max(G.stars[G.world],stars);
+  const bonus=stars*30;
+  gainXP(bonus);
+  document.getElementById('cel-em').textContent=stars===3?'🏆':stars===2?'🌟':'👍';
+  document.getElementById('cel-title').textContent=stars===3?'¡Perfecto!':stars===2?'¡Muy bien!':'¡Lo intentaste!';
+  document.getElementById('cel-sub').textContent=G.correct+' / '+total+' correctas — '+'⭐'.repeat(stars);
+  document.getElementById('cel-xp').textContent='+'+bonus+' XP ⭐';
+  launchConfetti();
+  document.getElementById('celmodal').classList.add('open');
+}
+function closeCel(){
+  document.getElementById('celmodal').classList.remove('open');
+  document.getElementById('confwrap').innerHTML='';
+  goWorlds();
+}
+
+// ============================================================
+//  CONFETTI
+// ============================================================
+function launchConfetti(){
+  const c=document.getElementById('confwrap');
+  c.innerHTML='';
+  const cols=['#FF6B6B','#FFD700','#4ECDC4','#A8E6CF','#C3A6FF','#FF9F43'];
+  for(let i=0;i<60;i++){
+    const p=document.createElement('div');
+    p.className='cp';
+    p.style.cssText=`left:${Math.random()*100}vw;background:${cols[Math.floor(Math.random()*cols.length)]};width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;border-radius:${Math.random()>.5?'50%':'2px'};animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*.8}s;`;
+    c.appendChild(p);
+  }
+}
+
+// ============================================================
+//  D-PAD INPUT
+// ============================================================
+function setupDpad(){
+  const dirs={u:'u',d:'d',l:'l',r:'r'};
+  ['u','d','l','r'].forEach(d=>{
+    const btn=document.getElementById('dp-'+d);
+    btn.addEventListener('pointerdown',e=>{e.preventDefault();G.moving[d]=true;});
+    btn.addEventListener('pointerup',e=>{e.preventDefault();G.moving[d]=false;});
+    btn.addEventListener('pointerleave',()=>{G.moving[d]=false;});
+  });
+}
+
+// Keyboard
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft'||e.key==='a') G.moving.l=true;
+  if(e.key==='ArrowRight'||e.key==='d') G.moving.r=true;
+  if(e.key==='ArrowUp'||e.key==='w') G.moving.u=true;
+  if(e.key==='ArrowDown'||e.key==='s') G.moving.d=true;
+  if(e.key===' '||e.key==='Enter') interact();
+});
+document.addEventListener('keyup',e=>{
+  if(e.key==='ArrowLeft'||e.key==='a') G.moving.l=false;
+  if(e.key==='ArrowRight'||e.key==='d') G.moving.r=false;
+  if(e.key==='ArrowUp'||e.key==='w') G.moving.u=false;
+  if(e.key==='ArrowDown'||e.key==='s') G.moving.d=false;
+});
+
+setupDpad();
+
+// ============================================================
+//  CHAT
+// ============================================================
+function buildChat(){
+  const g=document.getElementById('enc-grid');
+  g.innerHTML='';
+  ENCOURAGEMENTS.forEach(m=>{
+    const b=document.createElement('button');
+    b.className='enc-btn';
+    b.textContent=m;
+    b.onclick=()=>sendMsg(m);
+    g.appendChild(b);
+  });
+}
+function toggleChat(){
+  document.getElementById('chat-panel').classList.toggle('open');
+}
+function sendMsg(m){
+  const msgs=document.getElementById('chat-msgs');
+  const d=document.createElement('div');
+  d.className='cmsg me';
+  d.textContent=AVATARS[G.av]+' '+m;
+  msgs.appendChild(d);
+  msgs.scrollTop=msgs.scrollHeight;
+  setTimeout(()=>{
+    const replies=['🌟 Estrellita: ¡Gracias! ¡Tú también puedes!','🐸 Ranita: ¡Yay! ¡Juntos lo logramos!','🚀 Astro: ¡Eso es muy amable! ¡Sigue explorando!','🌻 Sol: ¡Me hiciste sonreír! 😊'];
+    const r=document.createElement('div');
+    r.className='cmsg fr';
+    r.textContent=replies[Math.floor(Math.random()*replies.length)];
+    msgs.appendChild(r);
+    msgs.scrollTop=msgs.scrollHeight;
+  },800);
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+selAv(0);
+</script>
+</body>
+</html>
