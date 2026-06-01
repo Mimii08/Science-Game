@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Science Adventure!</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sky: #87CEEB;
+    --grass: #5DBB63;
+    --sun: #FFD700;
+    --cloud: #fff;
+    --bg: #E8F4FD;
+    --card: #ffffff;
+    --accent1: #FF6B6B;
+    --accent2: #4ECDC4;
+    --accent3: #FFE66D;
+    --accent4: #A8E6CF;
+    --purple: #C3A6FF;
+    --text: #2C3E50;
+    --muted: #7F8C8D;
+    --radius: 20px;
+    --shadow: 0 8px 32px rgba(0,0,0,0.12);
+    --btn-shadow: 0 4px 0px rgba(0,0,0,0.18);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ---- SCREENS ---- */
+  .screen { display: none; min-height: 100vh; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ---- AVATAR SELECTION ---- */
+  #screen-avatar {
+    background: linear-gradient(160deg, #B5EAD7 0%, #FFDAC1 50%, #C7CEEA 100%);
+    align-items: center; justify-content: center; padding: 2rem;
+    flex-direction: column; gap: 2rem;
+  }
+  #screen-avatar h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    color: #fff;
+    text-shadow: 0 4px 0 rgba(0,0,0,0.15);
+    text-align: center;
+  }
+  #screen-avatar p { font-size: 1.2rem; color: #fff; font-weight: 700; text-align: center; }
+  .avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.2rem;
+    max-width: 500px; width: 100%;
+  }
+  .avatar-card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 1.2rem 0.8rem;
+    text-align: center;
+    cursor: pointer;
+    border: 4px solid transparent;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .avatar-card:hover { transform: scale(1.08); }
+  .avatar-card.selected { border-color: #FF6B6B; background: #FFF0F0; }
+  .avatar-card .emoji { font-size: 2.8rem; }
+  .avatar-card .name { font-size: 0.85rem; font-weight: 800; color: var(--text); margin-top: 6px; }
+  .name-input {
+    max-width: 320px; width: 100%;
+    display: flex; flex-direction: column; gap: 0.8rem; align-items: center;
+  }
+  .name-input input {
+    width: 100%; padding: 0.9rem 1.2rem;
+    border-radius: 50px; border: 3px solid #ddd;
+    font-size: 1.2rem; font-family: 'Nunito', sans-serif; font-weight: 700;
+    text-align: center; outline: none;
+    transition: border-color 0.2s;
+  }
+  .name-input input:focus { border-color: #FF6B6B; }
+
+  /* ---- BIG BUTTON ---- */
+  .big-btn {
+    background: #FF6B6B;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 1rem 2.5rem;
+    font-size: 1.3rem;
+    font-family: 'Fredoka One', cursive;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #CC3333, var(--shadow);
+    transition: transform 0.1s, box-shadow 0.1s;
+    white-space: nowrap;
+  }
+  .big-btn:hover { transform: translateY(-2px); }
+  .big-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #CC3333; }
+  .big-btn.green { background: #5DBB63; box-shadow: 0 6px 0 #3D8B42, var(--shadow); }
+  .big-btn.blue { background: #4ECDC4; box-shadow: 0 6px 0 #2E9B93, var(--shadow); }
+  .big-btn.yellow { background: #FFD700; color: #7A5800; box-shadow: 0 6px 0 #B89800, var(--shadow); }
+
+  /* ---- WORLD MAP ---- */
+  #screen-map {
+    background: linear-gradient(180deg, #87CEEB 0%, #B5EAD7 60%, #5DBB63 100%);
+    padding: 1rem;
+    overflow-y: auto;
+  }
+  .top-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.6rem 1rem;
+    background: rgba(255,255,255,0.85);
+    border-radius: var(--radius);
+    margin-bottom: 1.2rem;
+    box-shadow: var(--shadow);
+  }
+  .player-info { display: flex; align-items: center; gap: 10px; }
+  .player-avatar-sm { font-size: 2rem; }
+  .player-name { font-size: 1rem; font-weight: 800; }
+  .xp-bar-wrap { flex: 1; margin: 0 1rem; }
+  .xp-label { font-size: 0.75rem; font-weight: 700; color: var(--muted); margin-bottom: 3px; }
+  .xp-bar { height: 14px; background: #e0e0e0; border-radius: 99px; overflow: hidden; }
+  .xp-fill { height: 100%; background: linear-gradient(90deg, #FFD700, #FF9500); border-radius: 99px; transition: width 0.6s ease; }
+  .level-badge {
+    background: #FFD700; color: #7A5800;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem; padding: 4px 14px; border-radius: 50px;
+    box-shadow: 0 3px 0 #B89800;
+    white-space: nowrap;
+  }
+  .map-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem; color: white; text-align: center;
+    text-shadow: 0 3px 0 rgba(0,0,0,0.2);
+    margin-bottom: 1.2rem;
+  }
+  .worlds-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1.2rem;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .world-card {
+    border-radius: var(--radius);
+    padding: 1.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s;
+    border: 4px solid rgba(255,255,255,0.6);
+    position: relative;
+    overflow: hidden;
+  }
+  .world-card:hover { transform: scale(1.06) rotate(-1deg); }
+  .world-card.locked { opacity: 0.55; cursor: not-allowed; filter: grayscale(0.4); }
+  .world-card.locked:hover { transform: none; }
+  .world-card .world-emoji { font-size: 3.5rem; margin-bottom: 8px; }
+  .world-card .world-name {
+    font-family: 'Fredoka One', cursive; font-size: 1.15rem; color: white;
+    text-shadow: 0 2px 0 rgba(0,0,0,0.2);
+  }
+  .world-card .world-stars { font-size: 1.1rem; margin-top: 4px; letter-spacing: 2px; }
+  .world-card .lock-icon { font-size: 1.8rem; position: absolute; top: 8px; right: 10px; }
+  .world-sky { background: linear-gradient(135deg, #89CFF0, #4e8bcc); }
+  .world-volcano { background: linear-gradient(135deg, #FF9966, #cc4400); }
+  .world-ocean { background: linear-gradient(135deg, #1CB5E0, #007EFF); }
+  .world-jungle { background: linear-gradient(135deg, #56ab2f, #1e7c21); }
+  .world-space { background: linear-gradient(135deg, #2C3E50, #6c3483); }
+
+  /* ---- QUESTION SCREEN ---- */
+  #screen-question {
+    background: var(--bg);
+    padding: 1rem;
+    overflow-y: auto;
+  }
+  .q-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 1.2rem;
+  }
+  .q-header .back-btn {
+    background: white; border: none; border-radius: 50px;
+    padding: 8px 16px; font-size: 0.95rem; font-weight: 800;
+    cursor: pointer; box-shadow: 0 4px 0 #ddd;
+    transition: transform 0.1s;
+  }
+  .q-header .back-btn:hover { transform: scale(1.05); }
+  .q-world-badge {
+    font-family: 'Fredoka One', cursive; font-size: 1.1rem;
+    padding: 6px 16px; border-radius: 50px; color: white;
+    text-shadow: 0 1px 0 rgba(0,0,0,0.2);
+    box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+  }
+  .q-progress-wrap {
+    flex: 1; display: flex; flex-direction: column; gap: 3px;
+  }
+  .q-progress-bar { height: 12px; background: #e0e0e0; border-radius: 99px; overflow: hidden; }
+  .q-progress-fill { height: 100%; background: linear-gradient(90deg, #4ECDC4, #44B39A); border-radius: 99px; transition: width 0.4s; }
+  .q-progress-text { font-size: 0.75rem; font-weight: 700; color: var(--muted); }
+
+  .question-card {
+    background: white; border-radius: 24px;
+    padding: 1.8rem 1.5rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 1.2rem;
+  }
+  .question-scene { font-size: 3.5rem; text-align: center; margin-bottom: 1rem; }
+  .question-text {
+    font-size: clamp(1.1rem, 3vw, 1.4rem);
+    font-weight: 800; text-align: center; line-height: 1.4; color: var(--text);
+  }
+  .answers-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.9rem;
+    margin-bottom: 1rem;
+  }
+  .answer-btn {
+    background: white; border: 3px solid #e0e0e0;
+    border-radius: var(--radius);
+    padding: 1.1rem 0.8rem;
+    font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+    font-weight: 800; font-family: 'Nunito', sans-serif;
+    cursor: pointer; text-align: center;
+    box-shadow: 0 4px 0 #e0e0e0;
+    transition: transform 0.15s, border-color 0.2s, background 0.2s;
+    color: var(--text);
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .answer-btn .ans-emoji { font-size: 2rem; }
+  .answer-btn:hover { transform: scale(1.04); border-color: #4ECDC4; }
+  .answer-btn.correct { background: #AFFFB3; border-color: #5DBB63; box-shadow: 0 4px 0 #3D8B42; }
+  .answer-btn.wrong { background: #FFD1D1; border-color: #FF6B6B; box-shadow: 0 4px 0 #CC3333; }
+  .answer-btn:disabled { cursor: default; }
+
+  .feedback-box {
+    background: #AFFFB3; border-radius: var(--radius);
+    padding: 1rem 1.2rem; text-align: center;
+    font-size: 1.2rem; font-weight: 800;
+    display: none; margin-bottom: 1rem;
+    animation: popIn 0.3s ease;
+  }
+  .feedback-box.wrong-fb { background: #FFD1D1; }
+  @keyframes popIn {
+    0% { transform: scale(0.7); opacity: 0; }
+    70% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* ---- CHAT PANEL ---- */
+  .chat-toggle-btn {
+    position: fixed; bottom: 1.5rem; right: 1.5rem;
+    background: #FF6B6B; color: white; border: none;
+    border-radius: 50%; width: 60px; height: 60px;
+    font-size: 1.8rem; cursor: pointer;
+    box-shadow: 0 6px 0 #CC3333, var(--shadow);
+    transition: transform 0.2s;
+    z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .chat-toggle-btn:hover { transform: scale(1.1); }
+  .chat-panel {
+    position: fixed; bottom: 5rem; right: 1.5rem;
+    width: min(360px, calc(100vw - 2rem));
+    background: white; border-radius: 24px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+    display: none; flex-direction: column;
+    overflow: hidden; z-index: 99;
+    animation: slideUp 0.25s ease;
+  }
+  .chat-panel.open { display: flex; }
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .chat-header {
+    background: linear-gradient(135deg, #FF6B6B, #FF9F43);
+    color: white; padding: 0.9rem 1.2rem;
+    font-family: 'Fredoka One', cursive; font-size: 1.1rem;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chat-messages {
+    flex: 1; overflow-y: auto;
+    padding: 0.8rem; max-height: 220px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .chat-msg {
+    padding: 8px 12px; border-radius: 16px 16px 16px 4px;
+    font-size: 0.9rem; font-weight: 700; max-width: 85%;
+    animation: popIn 0.2s ease;
+  }
+  .chat-msg.me {
+    background: #E8F4FF; margin-left: auto;
+    border-radius: 16px 16px 4px 16px;
+    color: var(--text);
+  }
+  .chat-msg.friend {
+    background: #AFFFB3;
+    color: #1a5c20;
+  }
+  .chat-msg .msg-avatar { font-size: 1.1rem; margin-right: 4px; }
+  .chat-encouragements {
+    padding: 0.8rem;
+    border-top: 2px dashed #f0f0f0;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .enc-btn {
+    background: linear-gradient(135deg, #B5EAD7, #A8E6CF);
+    border: 2px solid #5DBB63;
+    border-radius: 50px; padding: 7px 10px;
+    font-size: 0.78rem; font-weight: 800;
+    cursor: pointer; text-align: center; color: #1a5c20;
+    transition: transform 0.15s, background 0.15s;
+    box-shadow: 0 3px 0 #3D8B42;
+  }
+  .enc-btn:hover { transform: scale(1.05); background: linear-gradient(135deg, #A8E6CF, #5DBB63); }
+  .enc-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #3D8B42; }
+  .chat-tip {
+    padding: 6px 12px 8px;
+    font-size: 0.72rem; color: var(--muted); text-align: center; font-weight: 600;
+  }
+
+  /* ---- CELEBRATION OVERLAY ---- */
+  #celebrate-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none; align-items: center; justify-content: center;
+    z-index: 200; flex-direction: column;
+  }
+  #celebrate-overlay.show { display: flex; }
+  .celebrate-card {
+    background: white; border-radius: 32px;
+    padding: 2.5rem 2rem; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: popIn 0.4s ease;
+    max-width: 360px; width: 90%;
+  }
+  .celebrate-emoji { font-size: 5rem; }
+  .celebrate-title {
+    font-family: 'Fredoka One', cursive; font-size: 2.2rem;
+    color: #FF6B6B; margin: 0.5rem 0;
+    text-shadow: 0 3px 0 rgba(255,107,107,0.3);
+  }
+  .celebrate-xp {
+    font-size: 1.3rem; font-weight: 800; color: #FFD700;
+    background: #FFF8E1; border-radius: 50px; padding: 8px 20px;
+    display: inline-block; margin: 0.5rem 0;
+    box-shadow: 0 3px 0 #FFD700;
+  }
+  .confetti-container {
+    position: fixed; inset: 0; pointer-events: none; z-index: 201;
+  }
+  .confetti-piece {
+    position: absolute; top: -20px;
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* ---- LEVEL UP OVERLAY ---- */
+  #levelup-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: none; align-items: center; justify-content: center;
+    z-index: 300;
+  }
+  #levelup-overlay.show { display: flex; }
+  .levelup-card {
+    background: linear-gradient(135deg, #FFD700, #FF9500);
+    border-radius: 32px; padding: 2.5rem 2rem; text-align: center;
+    animation: popIn 0.4s ease; max-width: 320px; width: 90%;
+    box-shadow: 0 20px 60px rgba(255,165,0,0.5);
+  }
+  .levelup-title {
+    font-family: 'Fredoka One', cursive; font-size: 3rem; color: white;
+    text-shadow: 0 4px 0 rgba(0,0,0,0.2);
+  }
+  .levelup-num { font-size: 5rem; font-family: 'Fredoka One', cursive; color: white; line-height: 1; }
+  .levelup-sub { font-size: 1.2rem; font-weight: 800; color: rgba(255,255,255,0.9); margin-bottom: 1rem; }
+
+  /* ---- RESPONSIVE ---- */
+  @media (max-width: 480px) {
+    .worlds-grid { grid-template-columns: repeat(2, 1fr); }
+    .answers-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== AVATAR SELECTION ===================== -->
+<div id="screen-avatar" class="screen active">
+  <h1>🔬 Science Adventure!</h1>
+  <p>Pick your explorer!</p>
+  <div class="avatar-grid">
+    <div class="avatar-card" onclick="selectAvatar(0)">
+      <div class="emoji">🧑‍🚀</div><div class="name">Astro</div>
+    </div>
+    <div class="avatar-card" onclick="selectAvatar(1)">
+      <div class="emoji">👩‍🔬</div><div class="name">Dr. Sunny</div>
+    </div>
+    <div class="avatar-card" onclick="selectAvatar(2)">
+      <div class="emoji">🦸</div><div class="name">Science Hero</div>
+    </div>
+    <div class="avatar-card" onclick="selectAvatar(3)">
+      <div class="emoji">🧙‍♂️</div><div class="name">Lab Wizard</div>
+    </div>
+    <div class="avatar-card" onclick="selectAvatar(4)">
+      <div class="emoji">🐸</div><div class="name">Froggy</div>
+    </div>
+    <div class="avatar-card" onclick="selectAvatar(5)">
+      <div class="emoji">🦊</div><div class="name">Fox</div>
+    </div>
+  </div>
+  <div class="name-input">
+    <input id="player-name-input" type="text" placeholder="Your name!" maxlength="14" />
+    <button class="big-btn" onclick="startGame()">Let's Go! 🚀</button>
+  </div>
+</div>
+
+<!-- ===================== WORLD MAP ===================== -->
+<div id="screen-map" class="screen">
+  <div class="top-bar">
+    <div class="player-info">
+      <span class="player-avatar-sm" id="top-avatar">🧑‍🚀</span>
+      <span class="player-name" id="top-name">Explorer</span>
+    </div>
+    <div class="xp-bar-wrap">
+      <div class="xp-label">XP</div>
+      <div class="xp-bar"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+    </div>
+    <div class="level-badge" id="level-badge">⭐ Lv.1</div>
+  </div>
+  <div class="map-title">🌍 Choose Your World!</div>
+  <div class="worlds-grid">
+    <div class="world-card world-sky" id="world-0" onclick="enterWorld(0)">
+      <div class="world-emoji">☁️</div>
+      <div class="world-name">Sky & Weather</div>
+      <div class="world-stars" id="stars-0">⭐⭐⭐</div>
+    </div>
+    <div class="world-card world-volcano" id="world-1" onclick="enterWorld(1)">
+      <div class="world-emoji">🌋</div>
+      <div class="world-name">Earth & Rocks</div>
+      <div class="world-stars" id="stars-1">☆☆☆</div>
+    </div>
+    <div class="world-card world-ocean" id="world-2" onclick="enterWorld(2)">
+      <div class="world-emoji">🐠</div>
+      <div class="world-name">Ocean Life</div>
+      <div class="world-stars" id="stars-2">☆☆☆</div>
+      <div class="lock-icon">🔒</div>
+    </div>
+    <div class="world-card world-jungle" id="world-3" onclick="enterWorld(3)">
+      <div class="world-emoji">🌿</div>
+      <div class="world-name">Plants & Trees</div>
+      <div class="world-stars" id="stars-3">☆☆☆</div>
+      <div class="lock-icon">🔒</div>
+    </div>
+    <div class="world-card world-space" id="world-4" onclick="enterWorld(4)">
+      <div class="world-emoji">🚀</div>
+      <div class="world-name">Outer Space</div>
+      <div class="world-stars" id="stars-4">☆☆☆</div>
+      <div class="lock-icon">🔒</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== QUESTION SCREEN ===================== -->
+<div id="screen-question" class="screen">
+  <div class="q-header">
+    <button class="back-btn" onclick="goToMap()">⬅ Map</button>
+    <div class="q-world-badge" id="q-world-badge">☁️ Sky</div>
+    <div class="q-progress-wrap">
+      <div class="q-progress-bar"><div class="q-progress-fill" id="q-progress-fill" style="width:0%"></div></div>
+      <div class="q-progress-text" id="q-progress-text">Q 1 / 5</div>
+    </div>
+  </div>
+
+  <div class="question-card">
+    <div class="question-scene" id="q-scene">☁️</div>
+    <div class="question-text" id="q-text">Loading question...</div>
+  </div>
+
+  <div class="answers-grid" id="answers-grid"></div>
+
+  <div class="feedback-box" id="feedback-box">✅ Amazing! That's right!</div>
+</div>
+
+<!-- ===================== CHAT BUTTON + PANEL ===================== -->
+<button class="chat-toggle-btn" id="chat-toggle" onclick="toggleChat()">💬</button>
+<div class="chat-panel" id="chat-panel">
+  <div class="chat-header">💬 Friends Chat <span style="font-size:0.85rem; margin-left: auto; opacity:0.85">Safe & Fun!</span></div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="chat-msg friend"><span class="msg-avatar">🌟</span>Star Bot: Hi! You're doing great today!</div>
+  </div>
+  <div class="chat-encouragements" id="enc-buttons"></div>
+  <div class="chat-tip">💡 Pick a message to send to your friends!</div>
+</div>
+
+<!-- ===================== CELEBRATE OVERLAY ===================== -->
+<div id="celebrate-overlay">
+  <div class="confetti-container" id="confetti-container"></div>
+  <div class="celebrate-card">
+    <div class="celebrate-emoji" id="cel-emoji">🎉</div>
+    <div class="celebrate-title" id="cel-title">World Complete!</div>
+    <div style="font-size:1rem; color: var(--muted); margin-bottom: 0.5rem;" id="cel-sub">You got all questions right!</div>
+    <div class="celebrate-xp" id="cel-xp">+50 XP ⭐</div>
+    <button class="big-btn green" style="margin-top:1rem" onclick="closeCelebrate()">Back to Map! 🗺️</button>
+  </div>
+</div>
+
+<!-- ===================== LEVEL UP OVERLAY ===================== -->
+<div id="levelup-overlay">
+  <div class="levelup-card">
+    <div class="levelup-title">LEVEL UP!</div>
+    <div class="levelup-num" id="levelup-num">2</div>
+    <div class="levelup-sub" id="levelup-sub">You're a Science Star!</div>
+    <button class="big-btn" style="background:white; color:#FF9500; box-shadow: 0 6px 0 rgba(0,0,0,0.15); margin-top:0.5rem" onclick="closeLevelUp()">Awesome! 🌟</button>
+  </div>
+</div>
+
+<script>
+// ===================== DATA =====================
+const AVATARS = ['🧑‍🚀','👩‍🔬','🦸','🧙‍♂️','🐸','🦊'];
+const WORLD_COLORS = ['#4e8bcc','#cc4400','#007EFF','#1e7c21','#6c3483'];
+const WORLD_NAMES = ['☁️ Sky','🌋 Earth','🐠 Ocean','🌿 Plants','🚀 Space'];
+
+const QUESTIONS = {
+  0: [ // Sky & Weather
+    { scene:'☀️🌦️', text:'What makes rain fall from clouds?', answers:[
+      {e:'💧', t:'Water drops'}, {e:'🪨', t:'Rocks fall'}, {e:'🍃', t:'Leaves drop'}, {e:'🧂', t:'Salt shakes'}
+    ], correct: 0, fact:'Clouds are made of tiny water drops. When they get heavy, they fall as rain! 🌧️' },
+    { scene:'🌤️', text:'What does the sun give us?', answers:[
+      {e:'🌙', t:'Moonlight'}, {e:'☀️', t:'Light & warmth'}, {e:'❄️', t:'Cold air'}, {e:'💨', t:'Wind'}
+    ], correct: 1, fact:'The sun gives us light and warmth. It helps plants grow too! 🌻' },
+    { scene:'🌈', text:'When can you see a rainbow?', answers:[
+      {e:'🌙', t:'At night'}, {e:'⛄', t:'In snow'}, {e:'🌧️☀️', t:'Rain + sunshine'}, {e:'🌪️', t:'In storms'}
+    ], correct: 2, fact:'Rainbows appear when sunlight shines through raindrops! So colorful! 🌈' },
+    { scene:'❄️🌨️', text:'What is snow made of?', answers:[
+      {e:'🧁', t:'Sugar flakes'}, {e:'💧', t:'Frozen water'}, {e:'🧻', t:'Paper bits'}, {e:'🥛', t:'Frozen milk'}
+    ], correct: 1, fact:'Snow is frozen water! Each snowflake has 6 sides and no two are the same! ❄️' },
+    { scene:'💨', text:'What is wind?', answers:[
+      {e:'👻', t:'A ghost'}, {e:'💨', t:'Moving air'}, {e:'🌊', t:'Moving water'}, {e:'🔥', t:'Hot smoke'}
+    ], correct: 1, fact:'Wind is air that moves! It can fly kites and move clouds! 🪁' }
+  ],
+  1: [ // Earth & Rocks
+    { scene:'🌋💥', text:'What comes out of a volcano?', answers:[
+      {e:'🧃', t:'Juice'}, {e:'🌈', t:'Rainbows'}, {e:'🌋', t:'Hot lava'}, {e:'🐠', t:'Fish'}
+    ], correct: 2, fact:'Volcanoes shoot out hot melted rock called lava. Very hot! 🌋' },
+    { scene:'🪨', text:'How long does it take to make rocks?', answers:[
+      {e:'⏰', t:'1 hour'}, {e:'📅', t:'Millions of years'}, {e:'🕐', t:'One day'}, {e:'🗓️', t:'One week'}
+    ], correct: 1, fact:'Rocks take millions of years to form. They are very very old! ⏳' },
+    { scene:'🌍', text:'What is the outside layer of Earth called?', answers:[
+      {e:'🎂', t:'The cake'}, {e:'🍕', t:'The crust'}, {e:'🧅', t:'The peel'}, {e:'🥚', t:'The shell'}
+    ], correct: 1, fact:'We live on the Earth\'s crust, just like the top of a pizza! 🍕' },
+    { scene:'🏜️', text:'What makes deserts so dry?', answers:[
+      {e:'🐪', t:'Camels drink it'}, {e:'🌞', t:'Very little rain'}, {e:'🌊', t:'Too much sea'}, {e:'🌨️', t:'Too much snow'}
+    ], correct: 1, fact:'Deserts get very little rain. Some deserts can go years without any! 🏜️' },
+    { scene:'🌱🪨', text:'What do plants grow in?', answers:[
+      {e:'🪨', t:'Hard rocks'}, {e:'🌊', t:'The ocean'}, {e:'🌱', t:'Soil / dirt'}, {e:'🌫️', t:'In clouds'}
+    ], correct: 2, fact:'Plants grow in soil, which has tiny bits of rock and living things in it! 🌱' }
+  ],
+  2: [ // Ocean Life
+    { scene:'🐠🌊', text:'What do fish use to breathe underwater?', answers:[
+      {e:'👃', t:'A nose'}, {e:'🫁', t:'Lungs'}, {e:'🐟', t:'Gills'}, {e:'🫧', t:'Bubbles'}
+    ], correct: 2, fact:'Fish breathe with gills, which take oxygen from the water! 🐟' },
+    { scene:'🐙', text:'How many arms does an octopus have?', answers:[
+      {e:'4️⃣', t:'4 arms'}, {e:'6️⃣', t:'6 arms'}, {e:'8️⃣', t:'8 arms'}, {e:'1️⃣0️⃣', t:'10 arms'}
+    ], correct: 2, fact:'Octopuses have 8 arms! Each arm can taste and smell things! 🐙' },
+    { scene:'🐬', text:'What kind of animal is a dolphin?', answers:[
+      {e:'🐟', t:'A fish'}, {e:'🦈', t:'A shark'}, {e:'🐬', t:'A mammal'}, {e:'🦑', t:'A squid'}
+    ], correct: 2, fact:'Dolphins are mammals like us! They breathe air and feed milk to their babies! 🐬' },
+    { scene:'🌊🌙', text:'What makes ocean waves?', answers:[
+      {e:'🐳', t:'Big whales'}, {e:'💨', t:'Wind'}, {e:'🚤', t:'Boats'}, {e:'🐠', t:'Swimming fish'}
+    ], correct: 1, fact:'Wind blowing on the water makes waves! Stronger wind = bigger waves! 🌊' },
+    { scene:'🪸', text:'What color are healthy coral reefs?', answers:[
+      {e:'⬛', t:'Black'}, {e:'⚪', t:'White'}, {e:'🌈', t:'Colorful'}, {e:'🟤', t:'Brown'}
+    ], correct: 2, fact:'Healthy coral reefs are full of beautiful colors! They are home to thousands of animals! 🪸' }
+  ],
+  3: [ // Plants
+    { scene:'🌻', text:'What do plants need to make food?', answers:[
+      {e:'🍕', t:'Pizza'}, {e:'☀️💧', t:'Sun & water'}, {e:'🧁', t:'Cake'}, {e:'🧲', t:'A magnet'}
+    ], correct: 1, fact:'Plants make food from sunlight and water. This is called photosynthesis! ☀️' },
+    { scene:'🌱', text:'What does a seed grow into?', answers:[
+      {e:'🪨', t:'A rock'}, {e:'☁️', t:'A cloud'}, {e:'🌱', t:'A plant'}, {e:'🌊', t:'Water'}
+    ], correct: 2, fact:'Seeds are baby plants! With water, soil, and sun, they sprout and grow! 🌱' },
+    { scene:'🍂', text:'Why do leaves change color in fall?', answers:[
+      {e:'🎨', t:'Someone paints them'}, {e:'🌞', t:'Less sunlight'}, {e:'🌧️', t:'Too much rain'}, {e:'🐛', t:'Bugs eat them'}
+    ], correct: 1, fact:'With less sunlight in fall, leaves stop making green color and show red, orange & yellow! 🍂' },
+    { scene:'🌸', text:'What do bees collect from flowers?', answers:[
+      {e:'💧', t:'Water'}, {e:'🍯', t:'Nectar'}, {e:'🧂', t:'Salt'}, {e:'🪨', t:'Rocks'}
+    ], correct: 1, fact:'Bees collect nectar from flowers and turn it into honey! 🍯' },
+    { scene:'🌳', text:'What do roots do for plants?', answers:[
+      {e:'🌸', t:'Make flowers'}, {e:'☀️', t:'Catch sunlight'}, {e:'💧', t:'Drink water'}, {e:'🍃', t:'Make leaves'}
+    ], correct: 2, fact:'Roots drink water and nutrients from the soil and hold the plant in place! 🌳' }
+  ],
+  4: [ // Space
+    { scene:'🌕', text:'What shape is the Moon?', answers:[
+      {e:'🟥', t:'Square'}, {e:'⭐', t:'Star'}, {e:'🔵', t:'Round/ball'}, {e:'🔺', t:'Triangle'}
+    ], correct: 2, fact:'The Moon is round like a ball! It reflects sunlight to light up our night! 🌕' },
+    { scene:'⭐', text:'What is a star made of?', answers:[
+      {e:'💎', t:'Diamond'}, {e:'🔥', t:'Hot gas & fire'}, {e:'❄️', t:'Ice'}, {e:'🪨', t:'Rock'}
+    ], correct: 1, fact:'Stars are giant balls of hot gas, just like our Sun! They\'re very far away! ⭐' },
+    { scene:'🌍', text:'How long does Earth take to go around the Sun?', answers:[
+      {e:'1️⃣', t:'1 day'}, {e:'3️⃣0️⃣', t:'30 days'}, {e:'3️⃣6️⃣5️⃣', t:'365 days'}, {e:'1️⃣0️⃣', t:'10 days'}
+    ], correct: 2, fact:'Earth takes 365 days to go around the Sun. That\'s one whole year! 🌍' },
+    { scene:'🚀', text:'What do astronauts wear in space?', answers:[
+      {e:'👙', t:'Swimsuits'}, {e:'🧥', t:'A winter coat'}, {e:'👾', t:'Space suit'}, {e:'🩳', t:'Shorts'}
+    ], correct: 2, fact:'Astronauts wear special suits to breathe and stay safe in space! 🚀' },
+    { scene:'🌙✨', text:'Why do we see stars at night but not day?', answers:[
+      {e:'😴', t:'Stars sleep'}, {e:'☀️', t:'Sun is too bright'}, {e:'☁️', t:'Clouds hide them'}, {e:'🌊', t:'They go underwater'}
+    ], correct: 1, fact:'Stars are always there! But the sun is so bright it outshines them during the day! 🌟' }
+  ]
+};
+
+const ENCOURAGEMENTS = [
+  "You're amazing! 🌟", "Keep going! 💪", "So smart! 🧠", "You got this! 🎉",
+  "Great job! 👍", "You're a star! ⭐", "Fantastic! 🦸", "I believe in you! 💛",
+  "So cool! 😎", "Way to go! 🎈"
+];
+
+// ===================== STATE =====================
+let state = {
+  avatarIndex: 0,
+  name: '',
+  xp: 0,
+  level: 1,
+  worldStars: [0, 0, 0, 0, 0],
+  currentWorld: 0,
+  currentQ: 0,
+  correctCount: 0,
+  answered: false
+};
+
+// ===================== AVATAR SELECTION =====================
+function selectAvatar(i) {
+  state.avatarIndex = i;
+  document.querySelectorAll('.avatar-card').forEach((c, idx) => {
+    c.classList.toggle('selected', idx === i);
+  });
+}
+
+function startGame() {
+  const nameEl = document.getElementById('player-name-input');
+  state.name = nameEl.value.trim() || 'Explorer';
+  showScreen('screen-map');
+  updateTopBar();
+  updateWorldCards();
+}
+
+// ===================== SCREENS =====================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  // Show/hide chat button
+  const chatBtn = document.getElementById('chat-toggle');
+  chatBtn.style.display = id === 'screen-avatar' ? 'none' : 'flex';
+}
+
+// ===================== TOP BAR =====================
+function updateTopBar() {
+  document.getElementById('top-avatar').textContent = AVATARS[state.avatarIndex];
+  document.getElementById('top-name').textContent = state.name;
+  const xpForLevel = 100;
+  const pct = ((state.xp % xpForLevel) / xpForLevel) * 100;
+  document.getElementById('xp-fill').style.width = pct + '%';
+  document.getElementById('level-badge').textContent = '⭐ Lv.' + state.level;
+}
+
+// ===================== WORLD CARDS =====================
+function updateWorldCards() {
+  for (let i = 0; i < 5; i++) {
+    const card = document.getElementById('world-' + i);
+    const starsEl = document.getElementById('stars-' + i);
+    const s = state.worldStars[i];
+    starsEl.textContent = (s > 0 ? '⭐'.repeat(s) : '') + '☆'.repeat(3 - s);
+    // Unlock logic: first 2 always open, rest unlock after completing previous
+    const lockEl = card.querySelector('.lock-icon');
+    if (i < 2) {
+      card.classList.remove('locked');
+      if (lockEl) lockEl.remove();
+    } else if (state.worldStars[i-1] > 0) {
+      card.classList.remove('locked');
+      if (lockEl) lockEl.remove();
+    }
+  }
+}
+
+// ===================== ENTER WORLD =====================
+function enterWorld(worldIdx) {
+  const card = document.getElementById('world-' + worldIdx);
+  if (card.classList.contains('locked')) {
+    card.style.animation = 'none';
+    card.style.transform = 'scale(1.0)';
+    setTimeout(() => { card.style.transform = 'scale(1.05) rotate(3deg)'; }, 50);
+    setTimeout(() => { card.style.transform = 'scale(1.05) rotate(-3deg)'; }, 150);
+    setTimeout(() => { card.style.transform = ''; }, 250);
+    return;
+  }
+  state.currentWorld = worldIdx;
+  state.currentQ = 0;
+  state.correctCount = 0;
+  showScreen('screen-question');
+  loadQuestion();
+  updateQWorldBadge();
+}
+
+function updateQWorldBadge() {
+  const badge = document.getElementById('q-world-badge');
+  badge.textContent = WORLD_NAMES[state.currentWorld];
+  badge.style.background = WORLD_COLORS[state.currentWorld];
+  badge.style.color = 'white';
+}
+
+// ===================== QUESTIONS =====================
+function loadQuestion() {
+  const qs = QUESTIONS[state.currentWorld];
+  const q = qs[state.currentQ];
+  state.answered = false;
+
+  document.getElementById('q-scene').textContent = q.scene;
+  document.getElementById('q-text').textContent = q.text;
+  document.getElementById('feedback-box').style.display = 'none';
+
+  const total = qs.length;
+  document.getElementById('q-progress-fill').style.width = (state.currentQ / total * 100) + '%';
+  document.getElementById('q-progress-text').textContent = 'Q ' + (state.currentQ + 1) + ' / ' + total;
+
+  const grid = document.getElementById('answers-grid');
+  grid.innerHTML = '';
+  q.answers.forEach((a, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.innerHTML = `<span class="ans-emoji">${a.e}</span>${a.t}`;
+    btn.onclick = () => answer(i, btn);
+    grid.appendChild(btn);
+  });
+}
+
+function answer(idx, btn) {
+  if (state.answered) return;
+  state.answered = true;
+
+  const qs = QUESTIONS[state.currentWorld];
+  const q = qs[state.currentQ];
+  const allBtns = document.querySelectorAll('.answer-btn');
+  allBtns.forEach(b => b.disabled = true);
+
+  const fb = document.getElementById('feedback-box');
+  if (idx === q.correct) {
+    btn.classList.add('correct');
+    state.correctCount++;
+    fb.textContent = '🎉 ' + q.fact;
+    fb.className = 'feedback-box';
+    fb.style.display = 'block';
+    gainXP(20);
+  } else {
+    btn.classList.add('wrong');
+    allBtns[q.correct].classList.add('correct');
+    fb.textContent = '💡 ' + q.fact;
+    fb.className = 'feedback-box wrong-fb';
+    fb.style.display = 'block';
+  }
+
+  setTimeout(() => {
+    state.currentQ++;
+    if (state.currentQ >= qs.length) {
+      finishWorld();
+    } else {
+      loadQuestion();
+    }
+  }, 2200);
+}
+
+// ===================== XP & LEVELS =====================
+function gainXP(amount) {
+  const prevLevel = state.level;
+  state.xp += amount;
+  state.level = 1 + Math.floor(state.xp / 100);
+  updateTopBar();
+  if (state.level > prevLevel) {
+    setTimeout(() => showLevelUp(), 400);
+  }
+}
+
+function showLevelUp() {
+  const titles = ['','Curious Kid 🌱','Science Fan 🔬','Lab Explorer 🧪','Star Scientist ⭐','Science Hero 🦸'];
+  document.getElementById('levelup-num').textContent = state.level;
+  document.getElementById('levelup-sub').textContent = titles[state.level] || 'Science Master! 🏆';
+  document.getElementById('levelup-overlay').classList.add('show');
+}
+function closeLevelUp() { document.getElementById('levelup-overlay').classList.remove('show'); }
+
+// ===================== FINISH WORLD =====================
+function finishWorld() {
+  const total = QUESTIONS[state.currentWorld].length;
+  const pct = state.correctCount / total;
+  const stars = pct === 1 ? 3 : pct >= 0.6 ? 2 : 1;
+  state.worldStars[state.currentWorld] = Math.max(state.worldStars[state.currentWorld], stars);
+
+  const bonus = stars * 30;
+  gainXP(bonus);
+
+  const emojis = ['😊','🌟','🎊'];
+  document.getElementById('cel-emoji').textContent = stars === 3 ? '🏆' : stars === 2 ? '🌟' : '👍';
+  document.getElementById('cel-title').textContent = stars === 3 ? 'Perfect Score!' : stars === 2 ? 'Great Job!' : 'You Tried Hard!';
+  document.getElementById('cel-sub').textContent = state.correctCount + ' / ' + total + ' correct — ' + '⭐'.repeat(stars);
+  document.getElementById('cel-xp').textContent = '+' + bonus + ' XP ⭐';
+
+  launchConfetti();
+  document.getElementById('celebrate-overlay').classList.add('show');
+}
+
+function closeCelebrate() {
+  document.getElementById('celebrate-overlay').classList.remove('show');
+  document.getElementById('confetti-container').innerHTML = '';
+  goToMap();
+}
+
+function goToMap() {
+  showScreen('screen-map');
+  updateTopBar();
+  updateWorldCards();
+}
+
+// ===================== CONFETTI =====================
+function launchConfetti() {
+  const container = document.getElementById('confetti-container');
+  container.innerHTML = '';
+  const colors = ['#FF6B6B','#FFD700','#4ECDC4','#A8E6CF','#C3A6FF','#FF9F43'];
+  for (let i = 0; i < 60; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.cssText = `
+      left: ${Math.random() * 100}vw;
+      background: ${colors[Math.floor(Math.random() * colors.length)]};
+      width: ${6 + Math.random() * 8}px;
+      height: ${6 + Math.random() * 8}px;
+      border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+      animation-duration: ${1.5 + Math.random() * 2}s;
+      animation-delay: ${Math.random() * 0.8}s;
+    `;
+    container.appendChild(piece);
+  }
+}
+
+// ===================== CHAT =====================
+function buildChatButtons() {
+  const wrap = document.getElementById('enc-buttons');
+  wrap.innerHTML = '';
+  ENCOURAGEMENTS.forEach(msg => {
+    const btn = document.createElement('button');
+    btn.className = 'enc-btn';
+    btn.textContent = msg;
+    btn.onclick = () => sendEncouragement(msg);
+    wrap.appendChild(btn);
+  });
+}
+
+function toggleChat() {
+  const panel = document.getElementById('chat-panel');
+  panel.classList.toggle('open');
+}
+
+function sendEncouragement(msg) {
+  const messages = document.getElementById('chat-messages');
+  const myMsg = document.createElement('div');
+  myMsg.className = 'chat-msg me';
+  myMsg.textContent = AVATARS[state.avatarIndex] + ' ' + msg;
+  messages.appendChild(myMsg);
+  messages.scrollTop = messages.scrollHeight;
+
+  // Friendly auto-reply
+  setTimeout(() => {
+    const replies = [
+      '🌟 Star Bot: Aww thank you! You\'re amazing too!',
+      '🐸 Froggy: Yay! We can do it together!',
+      '🚀 Astro: That\'s so kind! Keep exploring!',
+      '🌻 Sunny: You made me smile! 😊'
+    ];
+    const reply = document.createElement('div');
+    reply.className = 'chat-msg friend';
+    reply.textContent = replies[Math.floor(Math.random() * replies.length)];
+    messages.appendChild(reply);
+    messages.scrollTop = messages.scrollHeight;
+  }, 800);
+}
+
+// ===================== INIT =====================
+buildChatButtons();
+document.getElementById('chat-toggle').style.display = 'none';
+</script>
+</body>
+</html>
